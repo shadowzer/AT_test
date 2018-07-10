@@ -28,20 +28,20 @@ public class Application {
         if (args.length != 2)
             throw new IllegalArgumentException("Invalid program arguments!\nThere is should be 2 arguments: port and backup_directory");
         int port = Integer.parseInt(args[0]);
-        if (port < 1024 || port > 65535)
-            throw new IllegalArgumentException("Invalid program arguments!\nPort must be between 1024 and 65535");
+        if (port < 1 || port > 65535)
+            throw new IllegalArgumentException("Invalid program arguments!\nPort must be between 1 and 65535");
 
-        File backupDir = new File(args[1]);
+        File backupDirectory = new File(args[1]);
         boolean success = false;
-        if (backupDir.exists()) {
-            if (backupDir.isFile())
-                throw new IllegalArgumentException("Invalid program arguments!\nInvalid path to backup directory: " + backupDir.getAbsolutePath());
-            if (backupDir.isDirectory())
+        if (backupDirectory.exists()) {
+            if (backupDirectory.isFile())
+                throw new IllegalArgumentException("Invalid program arguments!\nInvalid path to backup directory: " + backupDirectory.getAbsolutePath());
+            if (backupDirectory.isDirectory())
                 success = true;
         }
         if (!success)
-            success = backupDir.mkdirs();
+            success = backupDirectory.mkdirs();
         if (!success)
-            throw new IllegalArgumentException("Can not create backup directory. Path: " + backupDir.getAbsolutePath());
+            throw new IllegalArgumentException("Can not create backup directory. Path: " + backupDirectory.getAbsolutePath());
     }
 }
