@@ -1,6 +1,7 @@
 package ru.at.test;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -15,10 +16,9 @@ import static java.nio.file.StandardWatchEventKinds.*;
 
 @Component
 public class FileChangeWatcher {
-	private static Logger logger = Logger.getLogger(FileChangeWatcher.class);
-
-	private Arguments arguments;
-	private HttpRequestSender sender;
+	private final Arguments arguments;
+	private final HttpRequestSender sender;
+	private static Logger logger = LoggerFactory.getLogger(FileChangeWatcher.class);
 
 	@Autowired
 	public FileChangeWatcher(Arguments arguments, HttpRequestSender sender) {

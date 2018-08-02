@@ -2,15 +2,15 @@ package ru.at.test;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.File;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 
 @Component
 public class HttpRequestSender {
@@ -23,10 +23,8 @@ public class HttpRequestSender {
 
 	boolean registerWatchDirectory() {
 		RestTemplate restTemplate = new RestTemplate();
-		String directory = arguments.getBackupDirectory().replace("\\", "").replace("/", "");
-		ResponseEntity response = restTemplate.exchange(
-				String.format("http://%s:%s/register/%s", arguments.getServerHost(), arguments.getServerPort(), directory),
-				HttpMethod.POST, null, ResponseEntity.class);
+		String URL = String.format("http://%s:%s/register/%s", arguments.getServerHost(), arguments.getServerPort(), arguments.getBackupDirectory());
+		ResponseEntity response = restTemplate.postForEntity(URL, null, ResponseEntity.class);
 
 		return response.getStatusCode().is2xxSuccessful();
 	}
@@ -38,9 +36,7 @@ public class HttpRequestSender {
 		headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 		HttpEntity<LinkedMultiValueMap<String, Object>> requestEntity = new HttpEntity<>(map, headers);
 		RestTemplate restTemplate = new RestTemplate();
-		String directory = new File(arguments.getBackupDirectory()).getName();
-		String URL = String.format("http://%s:%s/upload/%s", arguments.getServerHost(), arguments.getServerPort(), directory);
-		System.out.println(URL + "\t\t" + path);
+		String URL = String.format("http://%s:%s/upload/%s", arguments.getServerHost(), arguments.getServerPort(), arguments.getBackupDirectory());
 		ResponseEntity<String> response = restTemplate.postForEntity(URL, requestEntity, String.class);
 
 		return response.getStatusCode().is2xxSuccessful();
@@ -48,9 +44,8 @@ public class HttpRequestSender {
 
 	void deleteRemoteFile(Path path) {
 		RestTemplate restTemplate = new RestTemplate();
-		String directory = arguments.getBackupDirectory().replace("\\", "").replace("/", "");
-		Map<String, String> map = new HashMap<>();
-		map.put("file", path.getFileName().toString());
-		restTemplate.delete(String.format("http://%s:%s/delete/%s", arguments.getServerHost(), arguments.getServerPort(), directory), map);
+		String URL = String.format("http://%s:%s/delete/%s?file=%s", arguments.getServerHost(),
+				arguments.getServerPort(), arguments.getBackupDirectory(), path.getFileName().toString());
+		restTemplate.delete(URL);
 	}
 }

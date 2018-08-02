@@ -1,6 +1,7 @@
 package ru.at.test;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -10,8 +11,8 @@ import java.util.regex.Pattern;
 
 @SpringBootApplication
 public class Application {
-	private static Logger logger = Logger.getLogger(Application.class);
-	
+	private static Logger logger = LoggerFactory.getLogger(Application.class);
+
 	/**
 	 * @param args [0] = backup dir,
 	 *             [1] = server host,
@@ -21,8 +22,8 @@ public class Application {
 		try {
 			checkArguments(args);
 			args[0] = "--backup.dir=" + args[0];
-			args[1] = "--server.host=" + args[1];
-			args[2] = "--server.port=" + args[2];
+			args[1] = "--backup_server.host=" + args[1];
+			args[2] = "--backup_server.port=" + args[2];
 			SpringApplication.run(Application.class, args);
 		} catch (IllegalArgumentException e) {
 			if (e instanceof NumberFormatException)
