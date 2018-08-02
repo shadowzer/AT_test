@@ -1,5 +1,8 @@
 package ru.at.test;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +19,16 @@ import java.nio.file.Paths;
 
 @Controller
 public class MainController {
-	@Value("${backup.dir}")
-	private String rootDirectory;
-	@Value("0:0:0:0:0:0:0:1")
-	private String localhostIPV6;
+	private final FileSystemHelper fileSystemHelper;
+	private final String localhostIPV6;
+	private final String localhostIPV4;
+
+	@Autowired
+	public MainController(FileSystemHelper fileSystemHelper) {
+		this.fileSystemHelper = fileSystemHelper;
+		this.localhostIPV6 = "0:0:0:0:0:0:0:1";
+		this.localhostIPV4 = "127.0.0.1";
+	}
 
 	@GetMapping("/")
 	public String index(HttpServletRequest request) {
@@ -28,55 +37,38 @@ public class MainController {
 
 	@PostMapping("/register/{directory}")
 	public ResponseEntity registerDirectory(@PathVariable("directory") String directory, HttpServletRequest request) {
-		String client = request.getRemoteAddr().equals(localhostIPV6) ? "localhost" : request.getRemoteAddr();
-		File destinationDirectory = new File(rootDirectory + "/" + client + "/" + directory + "/");
-		if (destinationDirectory.exists())
-			destinationDirectory.delete();
-		destinationDirectory.mkdirs();
-
-		return ResponseEntity.ok().build();
+		String client = request.getRemoteAddr().equals(localhostIPV6) ? localhostIPV4 : request.getRemoteAddr();
+		if (fileSystemHelper.createDirectory(client, directory))
+			return ResponseEntity.ok().build();
+		else
+			return ResponseEntity.badRequest().body("Can not register directory " + directory);
 	}
 
 	@PostMapping("/upload/{directory}")
 	public ResponseEntity<String> uploadFile(@RequestParam MultipartFile file, @PathVariable("directory") String directory, HttpServletRequest request) throws IOException {
-		String client = request.getRemoteAddr().equals(localhostIPV6) ? "localhost" : request.getRemoteAddr();
-		String destinationDirectoryPath = rootDirectory + "/" + client + "/" + directory + "/";
-		File destinationDirectory = new File(destinationDirectoryPath);
-		if (!destinationDirectory.exists())
-			throw new IOException("Destination directory does not exists. Path: " + destinationDirectory.getAbsolutePath());
-		String originalFilename = file.getOriginalFilename();
-		File destinationFile = new File(destinationDirectoryPath + originalFilename);
-		if (destinationFile.exists()) {
-			System.out.println("DELETING EXISTING FILE " + destinationFile.getAbsolutePath());
-			System.out.println(destinationFile.delete());
-		}
-		Files.copy(file.getInputStream(), Paths.get(destinationDirectoryPath).resolve(originalFilename));
-//		file.transferTo(destinationFile);
-		System.out.println("UPLOADING " + destinationDirectoryPath + originalFilename);
-//		Files.copy(file.getInputStream(), new File(destinationDirectoryPath + file.getOriginalFilename()).toPath());
-
-		return ResponseEntity.ok().body("Successfully uploaded " + originalFilename);
+		String client = request.getRemoteAddr().equals(localhostIPV6) ? localhostIPV4 : request.getRemoteAddr();
+		if (fileSystemHelper.saveFile(client, directory, file))
+			return ResponseEntity.ok("Successfully uploaded " + file.getOriginalFilename());
+		else
+			return ResponseEntity.badRequest().body("Can not save file " + file.getOriginalFilename());
 	}
 
 	@DeleteMapping("/delete/{directory}")
-	public ResponseEntity deleteFile(@PathVariable("directory") String directory, @RequestParam("file") String file, HttpServletRequest request) throws IOException {
-		String client = request.getRemoteAddr().equals(localhostIPV6) ? "localhost" : request.getRemoteAddr();
-		String destinationDirectoryPath = rootDirectory + "/" + client + "/" + directory + "/";
-		File destinationDirectory = new File(destinationDirectoryPath);
-		if (!destinationDirectory.exists())
-			throw new IOException("Destination directory does not exists. Path: " + destinationDirectory.getAbsolutePath());
-		String pathname = destinationDirectoryPath + file;
-		File fileToDelete = new File(pathname);
-		if (fileToDelete.exists()) {
-			System.out.println("DELETING " + pathname);
-			fileToDelete.delete();
-		}
-
-		return ResponseEntity.ok().build();
+	public ResponseEntity<String> deleteFile(@PathVariable("directory") String directory, @RequestParam("file") String file, HttpServletRequest request) throws IOException {
+		String client = request.getRemoteAddr().equals(localhostIPV6) ? localhostIPV4 : request.getRemoteAddr();
+		if (fileSystemHelper.deleteFile(client, directory, file))
+			return ResponseEntity.ok("Successfully deleted " + file);
+		else
+			return ResponseEntity.badRequest().body("Can not delete file " + file);
 	}
 
 	@Bean
 	public MultipartFilter multipartFilter() {
 		return new MultipartFilter();
+	}
+
+	@ExceptionHandler(IOException.class)
+	public ResponseEntity handleException(IOException ex) {
+		return ResponseEntity.badRequest().body(ex.getMessage());
 	}
 }
